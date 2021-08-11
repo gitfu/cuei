@@ -1,4 +1,4 @@
-package threefive
+package cuei
 
 var table20 = map[uint8]string{
 	0x00: "Restrict Group 0",
