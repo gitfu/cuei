@@ -1,4 +1,4 @@
-package threefive
+package cuei
 
 import (
 	"fmt"
