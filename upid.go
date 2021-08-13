@@ -82,16 +82,29 @@ func (upid *URI) Decode(bitn *bitter.Bitn, upidtype string, name string, upidlen
 	upid.Value = bitn.AsHex(upidlen << 3)
 }
 
-/**
+// ATSC Segmentation Upid
+type ATSC struct {
+	UpidType  string
+	Name      string
+	TSID      uint64
+	Reserved  uint8
+	EndOfDay  uint8
+	UniqueFor uint64
+	ContentID string
+}
 
-def _decode_atsc(bitbin, upid_length):
-    return {
-        "TSID": bitbin.as_int(16),
-        "reserved": bitbin.as_int(2),
-        "end_of_day": bitbin.as_int(5),
-        "unique_for": bitbin.as_int(9),
-        "content_id": bitbin.as_ascii(((upid_length - 4) << 3)),
-    }
+// Decode for ATSC struct
+func (upid *ATSC) Decode(bitn *bitter.Bitn, upidtype string, name string, upidlen uint) {
+	upid.UpidType = upidtype
+	upid.Name = name
+	upid.TSID = bitn.AsUInt64(16)
+	upid.Reserved = bitn.AsUInt8(2)
+	upid.EndOfDay = bitn.AsUInt8(5)
+	upid.UniqueFor = bitn.AsUInt64(9)
+	upid.ContentID = bitn.AsAscii(((upid_length - 4) << 3))
+}
+
+/**
 
 
 def _decode_eidr(bitbin, upid_length):
