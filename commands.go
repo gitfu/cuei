@@ -1,78 +1,70 @@
 package cuei
 
-import "github.com/futzu/bitter"
+type SpliceCommand struct {
 
-// Command is an interface for Splice Commands
-type Command interface {
-	Decode(bitn *bitter.Bitn)
+    	Name                        string  
+    	CommandType                 uint8
+	Identifier                  uint64  `json:",omitempty"`
+	Bites                       []byte  `json:",omitempty"`
+    	SpliceEventID               string  `json:",omitempty"`
+	SpliceEventCancelIndicator  bool    `json:",omitempty"`
+	OutOfNetworkIndicator       bool    `json:",omitempty"`
+	ProgramSpliceFlag           bool    `json:",omitempty"`
+	DurationFlag                bool    `json:",omitempty"`
+	BreakAutoReturn             bool    `json:",omitempty"`
+	BreakDuration               float64 `json:",omitempty"`
+	SpliceImmediateFlag         bool    `json:",omitempty"`
+	ComponentCount              uint8   `json:",omitempty"`
+	Components                  []uint8 `json:",omitempty"`
+	UniqueProgramID             uint64  `json:",omitempty"`
+	AvailNum                    uint8   `json:",omitempty"`
+	AvailExpected               uint8   `json:",omitempty"`
+	TimeSpecifiedFlag           bool    `json:",omitempty"`
+	PTS                         float64 `json:",omitempty"`
+    
 }
 
-// cmdMap maps Splice Command Types to the Command interface
-var cmdMap = map[uint8]Command{
-	0:   &SpliceNull{},
-	5:   &SpliceInsert{},
-	6:   &TimeSignal{},
-	7:   &BandwidthReservation{},
-	255: &PrivateCommand{},
+// CommandDecoder returns a Command by cmdtype
+func (cmd *SpliceCommand) Decoder(cmdtype uint8,bitn *Bitn) {
+    cmd.CommandType = cmdtype
+	switch cmdtype {
+	case 0:
+        return
+        cmd.SpliceNull(bitn)
+	case 5:
+
+		cmd.SpliceInsert(bitn)
+	case 6:
+		cmd.TimeSignal(bitn)
+	case 7:
+		cmd.BandwidthReservation(bitn)
+	case 255:
+		cmd.Private(bitn)
+	}
+	
 }
 
-// BandwidthReservation  Table 11
-type BandwidthReservation struct {
-	Name string
-}
 
-// Decode for the Command interface
-func (cmd *BandwidthReservation) Decode(bitn *bitter.Bitn) {
+// Bandwidth Reservation
+func (cmd *SpliceCommand) BandwidthReservation(bitn *Bitn) {
 	cmd.Name = "Bandwidth Reservation"
 	bitn.Forward(0)
 }
-
-// PrivateCommand  Table 12
-type PrivateCommand struct {
-	Name       string
-	Identifier uint64
-	Bites      []byte
-}
-
-// Decode for the Command interface
-func (cmd *PrivateCommand) Decode(bitn *bitter.Bitn) {
+// Private Command
+func (cmd *SpliceCommand) Private(bitn *Bitn) {
 	cmd.Name = "Private Command"
 	cmd.Identifier = bitn.AsUInt64(32)
 	cmd.Bites = bitn.AsBytes(24)
 }
 
-// SpliceNull is the Splice Null Command
-type SpliceNull struct {
-	Name string
-}
-
-// Decode for the Command interface
-func (cmd *SpliceNull) Decode(bitn *bitter.Bitn) {
+// Splice Null
+func (cmd *SpliceCommand) SpliceNull(bitn *Bitn) {
 	cmd.Name = "Splice Null"
 	bitn.Forward(0)
 }
 
-// SpliceInsert handles SCTE 35 splice insert commands.
-type SpliceInsert struct {
-	Name                       string
-	SpliceEventID              string
-	SpliceEventCancelIndicator bool
-	OutOfNetworkIndicator      bool
-	ProgramSpliceFlag          bool
-	DurationFlag               bool
-	BreakAutoReturn            bool
-	BreakDuration              float64
-	SpliceImmediateFlag        bool
-	TimeSignal
-	ComponentCount  uint8   `json:",omitempty"`
-	Components      []uint8 `json:",omitempty"`
-	UniqueProgramID uint64
-	AvailNum        uint8
-	AvailExpected   uint8
-}
-
-// Decode for the Command interface
-func (cmd *SpliceInsert) Decode(bitn *bitter.Bitn) {
+// Splice Insert
+func (cmd *SpliceCommand) SpliceInsert(bitn *Bitn) {
 	cmd.Name = "Splice Insert"
 	cmd.SpliceEventID = bitn.AsHex(32)
 	cmd.SpliceEventCancelIndicator = bitn.AsBool()
@@ -84,7 +76,7 @@ func (cmd *SpliceInsert) Decode(bitn *bitter.Bitn) {
 		cmd.SpliceImmediateFlag = bitn.AsBool()
 		bitn.Forward(4)
 	}
-	if cmd.ProgramSpliceFlag {
+	if cmd.ProgramSpliceFlag == true {
 		if !cmd.SpliceImmediateFlag {
 			cmd.spliceTime(bitn)
 		}
@@ -99,7 +91,7 @@ func (cmd *SpliceInsert) Decode(bitn *bitter.Bitn) {
 			cmd.spliceTime(bitn)
 		}
 	}
-	if cmd.DurationFlag {
+	if cmd.DurationFlag == true {
 		cmd.parseBreak(bitn)
 	}
 	cmd.UniqueProgramID = bitn.AsUInt64(16)
@@ -107,20 +99,13 @@ func (cmd *SpliceInsert) Decode(bitn *bitter.Bitn) {
 	cmd.AvailExpected = bitn.AsUInt8(8)
 }
 
-func (cmd *SpliceInsert) parseBreak(bitn *bitter.Bitn) {
+func (cmd *SpliceCommand) parseBreak(bitn *Bitn) {
 	cmd.BreakAutoReturn = bitn.AsBool()
 	bitn.Forward(6)
 	cmd.BreakDuration = bitn.As90k(33)
 }
 
-// TimeSignal Splice Command
-type TimeSignal struct {
-	Name              string
-	TimeSpecifiedFlag bool
-	PTS               float64
-}
-
-func (cmd *TimeSignal) spliceTime(bitn *bitter.Bitn) {
+func (cmd *SpliceCommand) spliceTime(bitn *Bitn) {
 	cmd.TimeSpecifiedFlag = bitn.AsBool()
 	if cmd.TimeSpecifiedFlag {
 		bitn.Forward(6)
@@ -130,8 +115,8 @@ func (cmd *TimeSignal) spliceTime(bitn *bitter.Bitn) {
 	}
 }
 
-// Decode for the Command interface
-func (cmd *TimeSignal) Decode(bitn *bitter.Bitn) {
+// Time Signal
+func (cmd *SpliceCommand) TimeSignal(bitn *Bitn) {
 	cmd.Name = "Time Signal"
 	cmd.spliceTime(bitn)
 }
