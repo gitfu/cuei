@@ -2,57 +2,45 @@ package cuei
 
 import (
 	"fmt"
-	"github.com/futzu/bitter"
 )
 
 // Cue a SCTE35 cue.
 type Cue struct {
 	InfoSection
-	Command
-	Descriptors  []Descriptor `json:",omitempty"`
-	PacketNumber int          `json:",omitempty"`
-	Pid          uint16       `json:",omitempty"`
-	Program      uint16       `json:",omitempty"`
-	Pcr          float64      `json:",omitempty"`
-	Pts          float64      `json:",omitempty"`
+	Command SpliceCommand
+	Descriptors []SpliceDescriptor `json:",omitempty"`
+	Packet      PacketData   `json:",omitempty"`
 }
 
 // Decode extracts bits for the Cue values.
 func (cue *Cue) Decode(bites []byte) bool {
-	var bitn bitter.Bitn
+	var bitn Bitn
 	bitn.Load(bites)
 	if !cue.InfoSection.Decode(&bitn) {
 		return false
-	}
-	cmd, ok := cmdMap[cue.InfoSection.SpliceCommandType]
-	if ok {
-		cue.Command = cmd
-		cue.Command.Decode(&bitn)
+	}        
+		cue.Command.Decoder(cue.InfoSection.SpliceCommandType, &bitn)
 		cue.InfoSection.DescriptorLoopLength = bitn.AsUInt64(16)
 		cue.dscptrLoop(&bitn)
 		return true
-	}
 	return false
 }
 
 // DscptrLoop loops over any splice descriptors
-func (cue *Cue) dscptrLoop(bitn *bitter.Bitn) {
+func (cue *Cue) dscptrLoop(bitn *Bitn) {
 	var i uint64
 	i = 0
-	for i < cue.InfoSection.DescriptorLoopLength {
+	l := cue.InfoSection.DescriptorLoopLength
+	for i < l {
 		tag := bitn.AsUInt8(8)
-		length := bitn.AsUInt8(8)
-		id := bitn.AsAscii(32)
-		sd, ok := dscptrMap[tag]
-		if ok {
-			var Dscptr Descriptor
-			Dscptr = sd
-			Dscptr.MetaData(tag, length, id)
-			Dscptr.Decode(bitn)
-			i += uint64(length) + 2
-			cue.Descriptors = append(cue.Descriptors, Dscptr)
+		i++
+		length := bitn.AsUInt64(8)
+		i++
+		i += length
+        var sdr SpliceDescriptor
+        sdr.Decoder(bitn, tag, uint8(length))
+        cue.Descriptors = append(cue.Descriptors, sdr)
 		}
-	}
 }
 
 //Show display SCTE-35 data as JSON.
