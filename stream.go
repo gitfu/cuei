@@ -5,6 +5,17 @@ import (
 	"os"
 )
 
+
+type PacketData struct {
+	PacketNumber int     `json:",omitempty"`
+	Pid          uint16  `json:",omitempty"`
+	Program      uint16  `json:",omitempty"`
+	Pcr          float64 `json:",omitempty"`
+	Pts          float64 `json:",omitempty"`
+}
+
+
+
 // pktSz is the size of an MPEG-TS packet in bytes.
 const pktSz = 188
 
