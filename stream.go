@@ -274,9 +274,9 @@ func (stream *Stream) mkCue(pid uint16) Cue {
 	cue.Pid = pid
 	p := stream.pid2Prgm[pid]
 	prgm := &p
-	cue.Program = *prgm
-	cue.Pcr = stream.mkPcr(*prgm)
-	cue.Pts = stream.mkPts(*prgm)
-	cue.PacketNumber = stream.pktNum
+	cue.Packet.Program = *prgm
+	cue.Packet.Pcr = stream.mkPcr(*prgm)
+	cue.Packet.Pts = stream.mkPts(*prgm)
+	cue.Packet.PacketNumber = stream.pktNum
 	return cue
 }
