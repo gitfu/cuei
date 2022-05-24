@@ -14,7 +14,7 @@ type Cue struct {
 
 // Decode extracts bits for the Cue values.
 func (cue *Cue) Decode(bites []byte) bool {
-	var bitn bitter.Bitn
+	var bitn Bitn
 	bitn.Load(bites)
 	if !cue.InfoSection.Decode(&bitn) {
 		return false
